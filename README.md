@@ -43,7 +43,7 @@ seed_canonical_risks.csv  Curated 24-card seed set
 2. **Configure environment**
    ```bash
    cp .env.example .env
-   # adjust DATABASE_URL, API_TOKEN, PROVENANCE_EDITOR as needed
+   # set POSTGRES_PASSWORD and update DATABASE_URL, API_TOKEN, PROVENANCE_EDITOR as needed
    ```
 
 3. **Provision the database schema**
@@ -67,7 +67,8 @@ docker compose up --build
 ```
 
 - API service: <http://localhost:8000>
-- Postgres: exposed on port `5432` with default credentials `postgres/postgres`.
+- Postgres: exposed on port `5432`. Set `POSTGRES_PASSWORD` (and optionally `POSTGRES_USER`/`POSTGRES_DB`) in your `.env` before
+  running `docker compose`.
 - Exports are written to `./exports` and refreshed daily by the in-app scheduler.
 
 ## Seeding Canonical Risks
