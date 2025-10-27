@@ -142,6 +142,17 @@ Daily background jobs also write `exports/eg_risks.json`, `exports/eg_risks.csv`
 
 Set `API_TOKEN` (or `X-API-Key` header) to require authentication on mutating endpoints. Missing or incorrect tokens result in `401 Unauthorized`. Provenance entries capture editor/timestamp metadata for governance reporting.
 
+### GitHub Secrets (CI/CD)
+
+If you run automated deployments or scheduled ingests from GitHub Actions, add the required environment variables as [repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) instead of committing them:
+
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for database connectivity.
+- `DATABASE_URL` for the application to reach the database service.
+- `API_TOKEN` (optional) to secure write operations from automation.
+- `PROVENANCE_EDITOR` / `PROVENANCE_DOMAIN` values to stamp provenance metadata for automated edits.
+
+Reference those secrets inside workflow files using `${{ secrets.NAME }}` to keep credentials out of version control. Populate your runtime `.env` from the same secrets during deployment so that local `.env.example` placeholders never leak into logs or artifacts.
+
 ## Provenance & Merge Policy
 
 - **One risk concept per card** – importer merges rows sharing normalized title/description hash.
