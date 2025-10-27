@@ -144,14 +144,21 @@ Set `API_TOKEN` (or `X-API-Key` header) to require authentication on mutating en
 
 ### GitHub Secrets (CI/CD)
 
-If you run automated deployments or scheduled ingests from GitHub Actions, add the required environment variables as [repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) instead of committing them:
+If you run automated deployments or scheduled ingests from GitHub Actions, add the required environment variables as [repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) instead of committing them.
 
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for database connectivity.
-- `DATABASE_URL` for the application to reach the database service.
-- `API_TOKEN` (optional) to secure write operations from automation.
-- `PROVENANCE_EDITOR` / `PROVENANCE_DOMAIN` values to stamp provenance metadata for automated edits.
+| Secret name | Description | Example value* |
+| --- | --- | --- |
+| `POSTGRES_USER` | Database role used by the API and import jobs. | `energy_guard_app` |
+| `POSTGRES_PASSWORD` | Strong password for `POSTGRES_USER`. | `generate-a-32-char-random-string` |
+| `POSTGRES_DB` | Database name for the EnergyGuard schema. | `energy_guard` |
+| `DATABASE_URL` | Full SQLAlchemy connection string referencing the same credentials. | `postgresql+psycopg2://energy_guard_app:${{ secrets.POSTGRES_PASSWORD }}@db:5432/energy_guard` |
+| `API_TOKEN` *(optional)* | Token required for POST/PUT/PATCH requests when API key enforcement is enabled. | `use-a-unique-token-for-ci` |
+| `PROVENANCE_EDITOR` | Short code recorded in provenance trails for automated edits. | `ICCS-AUTOMATION` |
+| `PROVENANCE_DOMAIN` *(optional)* | Domain or organization label for provenance. | `ICCS` |
 
-Reference those secrets inside workflow files using `${{ secrets.NAME }}` to keep credentials out of version control. Populate your runtime `.env` from the same secrets during deployment so that local `.env.example` placeholders never leak into logs or artifacts.
+\*Replace example placeholders with real, project-specific values before use. Avoid copying these samples verbatim into production systems.
+
+Reference the secrets inside workflow files using `${{ secrets.NAME }}` to keep credentials out of version control. Populate your runtime `.env` from the same secrets during deployment so that local `.env.example` placeholders never leak into logs or artifacts.
 
 ## Provenance & Merge Policy
 
