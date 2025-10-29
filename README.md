@@ -78,6 +78,21 @@ The repository includes `seed_canonical_risks.csv` covering 24 canonical risks a
 ```bash
 python manage.py ingest canonical-seed --file seed_canonical_risks.csv
 ```
+### Where to run `manage.py`
+
+- **When using Docker Compose (recommended):** run the command inside the running API container so all dependencies are pre-installed.
+  ```bash
+  docker compose exec api python manage.py ingest canonical-seed --file /app/seed_canonical_risks.csv
+  ```
+- **When running on the host:** execute the command from your activated virtual environment after installing dependencies.
+
+If you only need the ingestion CLI on the host, the minimal packages are:
+
+```bash
+pip install typer SQLAlchemy psycopg2-binary pydantic pydantic-settings python-dotenv
+```
+
+(Installing the full `requirements.txt` set is still recommended for a consistent environment, but the above suffices for `python manage.py` commands.)
 
 The importer enforces:
 
