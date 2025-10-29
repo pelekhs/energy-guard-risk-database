@@ -1,3 +1,5 @@
+# energy-guard-risk-database
+EnergyGuard T5.4 implementation
 # EnergyGuard AI Risk Database
 
 EnergyGuard is a curated database and API exposing canonical AI risk cards for energy-sector assessments. It provides a Postgres-backed data model with JSONB risk cards, FastAPI-powered services, CLI tooling for editorial workflows, and daily JSON/CSV exports suitable for TEF/ALTAI integration.
@@ -78,6 +80,7 @@ The repository includes `seed_canonical_risks.csv` covering 24 canonical risks a
 ```bash
 python manage.py ingest canonical-seed --file seed_canonical_risks.csv
 ```
+
 ### Where to run `manage.py`
 
 - **When using Docker Compose (recommended):** run the command inside the running API container so all dependencies are pre-installed.
@@ -166,6 +169,8 @@ If you run automated deployments or scheduled ingests from GitHub Actions, add t
 | `POSTGRES_USER` | Database role used by the API and import jobs. | `energy_guard_app` |
 | `POSTGRES_PASSWORD` | Strong password for `POSTGRES_USER`. | `generate-a-32-char-random-string` |
 | `POSTGRES_DB` | Database name for the EnergyGuard schema. | `energy_guard` |
+| `POSTGRES_HOST` *(optional)* | Hostname of the Postgres service (defaults to `localhost`). | `db` |
+| `POSTGRES_PORT` *(optional)* | Port for the Postgres service (defaults to `5432`). | `5432` |
 | `DATABASE_URL` | Full SQLAlchemy connection string referencing the same credentials. | `postgresql+psycopg2://energy_guard_app:${{ secrets.POSTGRES_PASSWORD }}@db:5432/energy_guard` |
 | `API_TOKEN` *(optional)* | Token required for POST/PUT/PATCH requests when API key enforcement is enabled. | `use-a-unique-token-for-ci` |
 | `PROVENANCE_EDITOR` | Short code recorded in provenance trails for automated edits. | `ICCS-AUTOMATION` |

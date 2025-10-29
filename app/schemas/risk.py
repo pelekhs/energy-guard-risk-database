@@ -35,7 +35,7 @@ class RiskCard(BaseModel):
 
 
 class RiskBase(BaseModel):
-    risk_id: str = Field(..., regex=RISK_ID_PATTERN)
+    risk_id: str = Field(..., pattern=RISK_ID_PATTERN)
     status: Optional[str] = None
     version: Optional[str] = None
     card: RiskCard

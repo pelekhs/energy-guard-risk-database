@@ -52,12 +52,22 @@ def _ensure_bounds(value: str) -> int:
 
 @seed_app.command("canonical-seed")
 def canonical_seed(
-    file: Path = typer.Option(..., exists=True, readable=True),
+    file_path: Path = typer.Option(
+        ...,
+        "--file",
+        "-f",
+        exists=True,
+        readable=True,
+        resolve_path=True,
+        path_type=Path,
+        metavar="FILE",
+        help="CSV file containing canonical risks to ingest",
+    ),
     provenance_editor: Optional[str] = typer.Option(None, help="Override provenance editor name"),
 ) -> None:
     editor = provenance_editor or settings.provenance_editor
     with get_session() as session:
-        _ingest_file(session, file, editor)
+        _ingest_file(session, file_path, editor)
         typer.echo("Canonical seed ingestion completed")
 
 

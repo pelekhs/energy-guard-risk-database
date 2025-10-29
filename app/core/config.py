@@ -20,7 +20,11 @@ class Settings(BaseSettings):
     provenance_editor: str = Field(default="unknown")
     provenance_domain: Optional[str] = None
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     @field_validator("export_dir")
     def ensure_export_dir(cls, value: str) -> str:

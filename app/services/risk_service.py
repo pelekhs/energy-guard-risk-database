@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from sqlalchemy import func, select, text
+from sqlalchemy import Text, cast, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ def get_risks(
     if ids:
         stmt = stmt.where(Risk.risk_id.in_(ids))
     if q:
-        stmt = stmt.where(func.lower(func.cast(Risk.card, text("text"))).like(f"%{q.lower()}%"))
+        stmt = stmt.where(func.lower(cast(Risk.card, Text)).like(f"%{q.lower()}%"))
     if min_impact is not None:
         stmt = stmt.where(Risk.card["impact_level"].as_integer() >= min_impact)
     stmt = stmt.limit(limit)
