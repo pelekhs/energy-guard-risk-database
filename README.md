@@ -78,7 +78,6 @@ The repository includes `seed_canonical_risks.csv` covering 24 canonical risks a
 ```bash
 python manage.py ingest canonical-seed --file seed_canonical_risks.csv
 ```
-
 ### Where to run `manage.py`
 
 - **When using Docker Compose (recommended):** run the command inside the running API container so all dependencies are pre-installed.
