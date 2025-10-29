@@ -4,7 +4,8 @@ SQLAlchemy==2.0.29
 psycopg2-binary==2.9.9
 alembic==1.13.1
 python-dotenv==1.0.1
-pydantic==1.10.14
+pydantic==2.12.3
+pydantic-settings==2.1.0
 typer==0.9.0
 python-dateutil==2.9.0.post0
 APScheduler==3.10.4

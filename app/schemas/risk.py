@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 RISK_ID_PATTERN = r"^EG-R-\d{4,}$"
 
@@ -27,9 +27,11 @@ class RiskCard(BaseModel):
     stable_id: Optional[str] = None
     merge_hash: Optional[str] = None
 
-    @validator("stable_id", always=True)
-    def set_stable_id(cls, v: Optional[str], values: Dict[str, Any]) -> str:
-        return v or values.get("risk_name", "").strip()
+    @model_validator(mode="after")
+    def set_stable_id(self) -> "RiskCard":
+        if not self.stable_id:
+            self.stable_id = self.risk_name.strip()
+        return self
 
 
 class RiskBase(BaseModel):
@@ -38,12 +40,11 @@ class RiskBase(BaseModel):
     version: Optional[str] = None
     card: RiskCard
 
-    @validator("card")
-    def align_stable_id(cls, value: RiskCard, values: Dict[str, Any]) -> RiskCard:
-        risk_id = values.get("risk_id")
-        if risk_id:
-            value.stable_id = risk_id
-        return value
+    @model_validator(mode="after")
+    def align_stable_id(self) -> "RiskBase":
+        if self.card:
+            self.card.stable_id = self.risk_id
+        return self
 
 
 class RiskCreate(RiskBase):
@@ -61,7 +62,7 @@ class RiskPatch(BaseModel):
     version: Optional[str]
     card_updates: Optional[Dict[str, Any]]
 
-    @validator("card_updates")
+    @field_validator("card_updates")
     def ensure_updates(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         return v
 
@@ -74,8 +75,7 @@ class RiskResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RiskBrief(BaseModel):

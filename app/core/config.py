@@ -2,7 +2,8 @@ import os
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -19,11 +20,9 @@ class Settings(BaseSettings):
     provenance_editor: str = Field(default="unknown")
     provenance_domain: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
-    @validator("export_dir")
+    @field_validator("export_dir")
     def ensure_export_dir(cls, value: str) -> str:
         os.makedirs(value, exist_ok=True)
         return value
