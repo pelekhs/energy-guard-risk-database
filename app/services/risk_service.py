@@ -20,10 +20,15 @@ def _ensure_stable_id(card: Dict[str, Any], risk_id: str) -> Dict[str, Any]:
 
 
 def _append_provenance(card: Dict[str, Any], action: str, editor: Optional[str] = None) -> None:
-    provenance_entry = (
-        f"editor:{editor or settings.provenance_editor} | action:{action} | timestamp:{datetime.utcnow().isoformat()}"
-    )
     provenance = card.setdefault("provenance", [])
+    if provenance and isinstance(provenance[0], str):
+        card["provenance"] = [{"note": entry} for entry in provenance if entry]
+        provenance = card["provenance"]
+    provenance_entry = {
+        "action": action,
+        "editor": editor or settings.provenance_editor,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
     provenance.append(provenance_entry)
 
 
@@ -34,6 +39,8 @@ def get_risks(
     min_impact: Optional[int] = None,
     limit: int = 50,
     ids: Optional[Sequence[str]] = None,
+    category: Optional[str] = None,
+    lifecycle_stage: Optional[str] = None,
 ) -> List[RiskResponse]:
     stmt = select(Risk)
     if ids:
@@ -42,8 +49,22 @@ def get_risks(
         stmt = stmt.where(func.lower(cast(Risk.card, Text)).like(f"%{q.lower()}%"))
     if min_impact is not None:
         stmt = stmt.where(Risk.card["impact_level"].as_integer() >= min_impact)
-    stmt = stmt.limit(limit)
     risks = session.execute(stmt).scalars().all()
+    if category:
+        category_lower = category.lower()
+        risks = [
+            risk
+            for risk in risks
+            if category_lower in {item.lower() for item in risk.card.get("categories", [])}
+        ]
+    if lifecycle_stage:
+        risks = [
+            risk
+            for risk in risks
+            if risk.card.get("lifecycle_stage") == lifecycle_stage
+        ]
+    if limit:
+        risks = risks[:limit]
     return [_to_response(risk) for risk in risks]
 
 
@@ -107,6 +128,14 @@ def patch_risk(session: Session, risk_id: str, payload: RiskPatch, editor: Optio
     risk.card = card_dict
     session.flush()
     return _to_response(risk)
+
+
+def delete_risk(session: Session, risk_id: str) -> None:
+    risk = session.get(Risk, risk_id)
+    if not risk:
+        raise NoResultFound(f"Risk {risk_id} not found")
+    session.delete(risk)
+    session.flush()
 
 
 def set_categories(session: Session, risk_id: str, category_ids: Iterable[str]) -> None:

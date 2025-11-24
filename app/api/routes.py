@@ -20,12 +20,22 @@ def list_risks(
     min_impact: Optional[int] = Query(default=None, ge=1, le=5),
     limit: int = Query(default=None, gt=0),
     ids: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None),
+    lifecycle_stage: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
 ) -> List[RiskResponse]:
     limit = limit or settings.default_limit
     limit = min(limit, settings.max_limit)
     id_list: Optional[List[str]] = ids.split(",") if ids else None
-    return risk_service.get_risks(db, q=q, min_impact=min_impact, limit=limit, ids=id_list)
+    return risk_service.get_risks(
+        db,
+        q=q,
+        min_impact=min_impact,
+        limit=limit,
+        ids=id_list,
+        category=category,
+        lifecycle_stage=lifecycle_stage,
+    )
 
 
 @router.get("/risks/{risk_id}", response_model=RiskResponse)
@@ -64,6 +74,15 @@ def partial_update_risk(
 ) -> RiskResponse:
     try:
         return risk_service.patch_risk(db, risk_id, payload, editor=settings.provenance_editor)
+    except NoResultFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/risks/{risk_id}", status_code=204, dependencies=[Depends(enforce_api_token)])
+def remove_risk(risk_id: str, db: Session = Depends(get_db)) -> Response:
+    try:
+        risk_service.delete_risk(db, risk_id)
+        return Response(status_code=204)
     except NoResultFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

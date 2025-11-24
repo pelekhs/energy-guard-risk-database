@@ -1,0 +1,12 @@
+automation-bias
+human-oversight
+goal-misspecification
+monitoring-drift
+governance-bias
+transparency
+compliance-tracking
+data-rights
+privacy-incidents
+safety-monitoring
+supply-chain
+data-integrity

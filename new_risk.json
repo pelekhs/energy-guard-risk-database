@@ -1,0 +1,28 @@
+{
+  "risk_id": "EG-R-9001",
+  "status": "draft",
+  "version": "1.0",
+  "card": {
+    "risk_name": "Sensor Spoofing During Load Forecasts",
+    "description": "Attackers replay stale SCADA measurements so forecasting models issue bad dispatch recommendations.",
+    "ai_model_type": ["forecasting"],
+    "probability_level": 3,
+    "impact_level": 4,
+    "operational_priority": 4,
+    "impact_dimensions": ["reliability", "safety"],
+    "trigger_conditions": "Unvalidated sensor telemetry feeds with no secure time sync.",
+    "technological_dependencies": ["SCADA historians", "edge inference gateways"],
+    "known_mitigations": ["Authenticated telemetry", "drift monitoring"],
+    "regulatory_requirements": ["NERC-CIP-005"],
+    "source_reference": ["MITRE_ATLAS:AML.T0043"],
+    "provenance": [
+      {"action": "drafted", "editor": "ICCS", "date": "2024-11-24"}
+    ],
+    "categories": ["technical.attack"],
+    "energy_context": ["transmission_control"],
+    "version": "1.0",
+    "lifecycle_stage": "operations",
+    "risk_summary": "Spoofed SCADA telemetry drives bad load forecasts and dispatch.",
+    "stable_id": "EG-R-9001"
+  }
+}

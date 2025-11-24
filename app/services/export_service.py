@@ -59,6 +59,12 @@ def export_csv_stream(session: Session) -> Iterator[str]:
     buffer.truncate(0)
     for risk in risks:
         card = dict(risk.card)
+        provenance_entries = []
+        for entry in card.get("provenance", []):
+            if isinstance(entry, (dict, list)):
+                provenance_entries.append(json.dumps(entry, sort_keys=True))
+            elif entry is not None:
+                provenance_entries.append(str(entry))
         row = {
             "risk_id": risk.risk_id,
             "risk_name": card.get("risk_name"),
@@ -73,7 +79,7 @@ def export_csv_stream(session: Session) -> Iterator[str]:
             "regulatory_requirements": ";".join(card.get("regulatory_requirements", [])),
             "operational_priority": card.get("operational_priority"),
             "source_reference": ";".join(card.get("source_reference", [])),
-            "provenance": ";".join(card.get("provenance", [])),
+            "provenance": ";".join(provenance_entries),
             "related_risks": ";".join(card.get("related_risks", [])),
             "categories": ";".join(card.get("categories", [])),
             "energy_context": ";".join(card.get("energy_context", [])),

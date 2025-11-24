@@ -19,13 +19,15 @@ class RiskCard(BaseModel):
     regulatory_requirements: List[str] = Field(default_factory=list)
     operational_priority: int = Field(..., ge=1, le=5)
     source_reference: List[str] = Field(default_factory=list)
-    provenance: List[str] = Field(default_factory=list)
+    provenance: List[Dict[str, Any]] = Field(default_factory=list)
     related_risks: List[str] = Field(default_factory=list)
     categories: List[str] = Field(default_factory=list)
     energy_context: List[str] = Field(default_factory=list)
     version: str
     stable_id: Optional[str] = None
     merge_hash: Optional[str] = None
+    lifecycle_stage: Optional[str] = None
+    risk_summary: Optional[str] = None
 
     @model_validator(mode="after")
     def set_stable_id(self) -> "RiskCard":

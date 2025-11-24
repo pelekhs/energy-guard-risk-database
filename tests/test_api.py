@@ -25,10 +25,10 @@ INVALID_CARD = {
         "trigger_conditions": "Testing",
         "technological_dependencies": ["pipeline"],
         "known_mitigations": ["mitigation"],
-        "regulatory_requirements": ["NERC"],
+        "regulatory_requirements": ["NERC-CIP-013"],
         "operational_priority": 3,
-        "source_reference": ["TEST:001"],
-        "provenance": ["unit-test"],
+        "source_reference": ["MITRE_ATLAS:AML.T0020"],
+        "provenance": [{"note": "unit-test"}],
         "related_risks": [],
         "categories": [],
         "energy_context": [],
@@ -47,14 +47,14 @@ VALID_CARD = {
         "ai_model_type": ["forecasting"],
         "probability_level": 3,
         "impact_level": 4,
-        "impact_dimensions": ["forecast"],
+        "impact_dimensions": ["reliability"],
         "trigger_conditions": "Unexpected weather shift",
         "technological_dependencies": ["data lake"],
         "known_mitigations": ["retraining"],
-        "regulatory_requirements": ["NERC"],
+        "regulatory_requirements": ["NERC-CIP-013"],
         "operational_priority": 4,
-        "source_reference": ["TEST:002"],
-        "provenance": ["unit-test"],
+        "source_reference": ["MITRE_ATLAS:AML.T0020"],
+        "provenance": [{"note": "unit-test"}],
         "related_risks": [],
         "categories": ["governance.monitoring"],
         "energy_context": ["transmission_planning"],
@@ -85,8 +85,8 @@ def test_search_and_filters(client):
 def test_import_idempotency(tmp_path, ingest_runs):
     seed_file = tmp_path / "seed.csv"
     seed_file.write_text(
-        """risk_id,risk_name,description,ai_model_type,probability_level,impact_level,impact_dimensions,trigger_conditions,technological_dependencies,known_mitigations,regulatory_requirements,operational_priority,source_reference,provenance,related_risks,categories,energy_context,version\n"
-        "EG-R-9100,Test Risk,Description,forecasting,3,4,reliability,Trigger,Dependency,Mitigation,NERC,3,TEST:003,merged: TEST | editor:ICCS | date:2024-03-20,,governance.test,lab,1.0\n"
+        "risk_id,risk_name,description,ai_model_type,probability_level,impact_level,impact_dimensions,trigger_conditions,technological_dependencies,known_mitigations,regulatory_requirements,operational_priority,source_reference,provenance,related_risks,categories,energy_context,version\n"
+        "EG-R-9100,Test Risk,Description,forecasting,3,4,reliability,Trigger,Dependency,Mitigation,NERC CIP-013,3,MITRE_ATLAS:AML.T0020,merged: MITRE_ATLAS:AML.T0020 | editor:ICCS | date:2024-03-20,,governance.oversight,control_rooms,1.0\n"
     )
     runner = CliRunner()
     for _ in range(ingest_runs):
