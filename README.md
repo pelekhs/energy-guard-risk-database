@@ -1,4 +1,4 @@
-# energy-guard-risk-database
+# EnergyGuard AI Risk Database
 EnergyGuard T5.4 implementation
 # EnergyGuard AI Risk Database
 
