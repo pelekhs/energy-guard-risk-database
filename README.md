@@ -1,6 +1,4 @@
 # EnergyGuard AI Risk Database
-EnergyGuard T5.4 implementation
-# EnergyGuard AI Risk Database
 
 EnergyGuard is a curated database and API exposing canonical AI risk cards for energy-sector assessments. It provides a Postgres-backed data model with JSONB risk cards, FastAPI-powered services, CLI tooling for editorial workflows, and daily JSON/CSV exports suitable for TEF/ALTAI integration. The current schema of the database can be visualised below: 
 
