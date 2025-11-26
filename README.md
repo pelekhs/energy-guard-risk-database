@@ -219,7 +219,14 @@ If you run automated deployments or scheduled ingests from GitHub Actions, add t
 
 Reference the secrets inside workflow files using `${{ secrets.NAME }}` to keep credentials out of version control. Populate your runtime `.env` from the same secrets during deployment so that local `.env.example` placeholders never leak into logs or artifacts.
 
-## Provenance & Merge Policy\n\n- **One risk concept per card** � importer merges rows sharing normalized title/description hash.\n- **Provenance** is tracked as an array of structured objects documenting merged sources, editors, dates, and actions.\n- **Source references** aggregate all contributing canonical IDs (e.g., MITRE_ATLAS, AIID).\n\n## Exports & Persistence
+## Provenance & Merge Policy
+
+- **One risk concept per card:** the importer merges rows that share a normalized title/description hash to keep canonical cards unique.
+- **Structured provenance:** every card stores an array of provenance objects documenting source identifiers, editors, timestamps, and merge actions.
+- **Source references:** MITRE ATLAS, MIT AI Risk, AIID, and other canonical IDs are aggregated into `card.source_reference` for downstream consumers.
+- **IBM Risk Atlas Nexus crosswalk:** canonical risk names are matched against the [risk-atlas-nexus](https://github.com/IBM/risk-atlas-nexus/tree/main/src/risk_atlas_nexus/data/knowledge_graph/mappings) mappings; when a match is found the importer appends an automatic provenance entry (the importer will fetch and cache the mappings in `data/risk_atlas_nexus_mappings.json` automatically, or you can refresh manually with `python scripts/update_risk_atlas_mappings.py`). Set `REFRESH_RISK_ATLAS_NEXUS=true` before running `python manage.py ingest ...` if you want to force a fresh download; otherwise the cached JSON is used.
+
+## Exports & Persistence
 
 - Exports write to `/exports` (configurable) and persist across container restarts when mounted.
 - Timestamped daily exports (`eg_risks_YYYYMMDD.json/csv`) are pruned after 14 days.
