@@ -230,6 +230,13 @@ Reference the secrets inside workflow files using `${{ secrets.NAME }}` to keep 
 pytest
 ```
 
+## TODOs
+- Schema will be constantly evolved based on the needs
+- Update provenance with the mappings of [risk-atlas-nexus by IBM](https://github.com/IBM/risk-atlas-nexus/tree/main/src/risk_atlas_nexus/data/knowledge_graph/mappings) where applicable.
+- Add ALTAI mappings based on the requirements for trustworthy AI and the structure of the questionnaire.
+- Create a user friendly front-end to explore the database. The front-end should be in accordance with the main template of the EnergyGuard platform.
+- Map to the acceptance environment of T5.2 as follows: Create a matchmaking service (maybe LLM based) that based on the type of AI application tested by the client displays the appropriate risks and alerts for their specific type of AI system.
+
 Tests validate schema constraints, search and filter behavior, importer idempotency, and export parity with the database count (using a temporary SQLite database for convenience).
 
 ## License
