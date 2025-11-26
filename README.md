@@ -6,6 +6,16 @@ The EnergyGuard AI Risk Database of Task 5.4 is a curated database and API expos
   <img src="db_metadata/db_schema_v0.1.png" width="800">
 </p>
 
+Each `risk.card` JSONB object contains these top-level fields:
+
+- `risk_name`, `description`
+- `ai_model_type` (list), `probability_level`, `impact_level`, `impact_dimensions` (list)
+- `trigger_conditions`, `technological_dependencies` (list), `known_mitigations` (list)
+- `regulatory_requirements` (list), `operational_priority`
+- `source_reference` (list), `provenance` (list of objects)
+- `related_risks` (list), `categories` (list), `energy_context` (list)
+- `altai_requirements` (list)
+- `version`, `stable_id`, `merge_hash`, `lifecycle_stage`, `risk_summary`
 
 
 ## Features
@@ -43,7 +53,7 @@ seed_canonical_risks.csv  Curated 24-card seed set
    ```bash
    python -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r requirements.txt  # pinned versions for reproducibility
    ```
 
 2. **Configure environment**s
@@ -85,18 +95,17 @@ The repository includes `seed_canonical_risks.csv` covering 24 indicative canoni
 python manage.py ingest canonical-seed --file seed_canonical_risks.csv
 ```
 
-### Where to run `manage.py`
+Inside Docker Compose, run the same ingest in the api container:
 
-- **When using Docker Compose (recommended):** run the command inside the running API container so all dependencies are pre-installed.
-  ```bash
-  docker compose exec api python manage.py ingest canonical-seed --file /app/seed_canonical_risks.csv
-  ```
+```bash
+docker compose exec api python manage.py ingest canonical-seed --file /app/seed_canonical_risks.csv
+```
 - **When running on the host:** execute the command from your activated virtual environment after installing dependencies.
 
 If you only need the ingestion CLI on the host, the minimal packages are:
 
 ```bash
-pip install typer SQLAlchemy psycopg2-binary pydantic pydantic-settings python-dotenv
+pip install typer==0.20.0 SQLAlchemy==2.0.44 psycopg2-binary==2.9.11 pydantic==2.12.3 pydantic-settings==2.11.0 python-dotenv==1.2.1 PyYAML==6.0.3
 ```
 
 (Installing the full `requirements.txt` set is still recommended for a consistent environment, but the above suffices for `python manage.py` commands.)
@@ -162,7 +171,7 @@ This CSV lists risk cards missing `known_mitigations`, `source_reference`, or le
 curl "http://localhost:8000/risks?q=forecast&min_impact=4&limit=20"
 ```
 
-Supports free-text search over card content, minimum impact filters, exact category filtering (`?category=governance.oversight`), lifecycle filtering (`?lifecycle_stage=training`), and `ids=EG-R-0001,EG-R-0005` batching for TEF integrations.
+Supports free-text search over card content, minimum impact filters, exact category filtering (`?category=governance.oversight`), lifecycle filtering (`?lifecycle_stage=training`), ALTAI filtering (`?altai=robustness`), and `ids=EG-R-0001,EG-R-0005` batching for TEF integrations.
 
 ### Retrieve a Single Risk
 
@@ -179,6 +188,8 @@ curl -X POST http://localhost:8000/risks \
   -d @new_risk.json
 ```
 
+(`new_risk.json` contains a full example payload you can clone/modify for new submissions.)
+
 `POST`, `PUT`, and `PATCH` endpoints append provenance entries documenting editor, action, and timestamp; responses expose `card.lifecycle_stage` and `card.risk_summary` for UI rendering.
 
 ### Export Endpoints
@@ -188,6 +199,24 @@ curl -X POST http://localhost:8000/risks \
 
 Daily background jobs also write `exports/eg_risks.json`, `exports/eg_risks.csv`, and timestamped snapshots retained for 14 days.
 
+### Provenance Crosswalk
+
+- Mapping data comes from IBM’s Risk Atlas Nexus SSSOM files (e.g., `mit-ai-risk-repository_ibm-risk-atlas_from_tsv_data.yaml` and `ibm2nistgenai_from_tsv_data.yaml`).
+- Refresh the cached mappings with:
+  ```bash
+  python scripts/update_risk_atlas_mappings.py
+  ```
+  or set `REFRESH_RISK_ATLAS_NEXUS=true` before running the importer to force a download on ingest.
+- When a risk title matches an `atlas-*` entry, the importer appends a provenance object to `card.provenance` like:
+  ```json
+  {
+    "action": "mapped",
+    "sources": ["IBM_RISK_ATLAS:atlas-data-poisoning"],
+    "nexus_matches": ["mit-ai-risk-subdomain-2.2"],
+    "nist_controls": ["NIST-XYZ"],
+    "mitre_atlas": ["AML.T0020"]
+  }
+  ```
 ### TEF / ALTAI Hooks
 
 - Every card exposes `stable_id == risk_id` for UI clarity.
@@ -231,20 +260,18 @@ Reference the secrets inside workflow files using `${{ secrets.NAME }}` to keep 
 - Exports write to `/exports` (configurable) and persist across container restarts when mounted.
 - Timestamped daily exports (`eg_risks_YYYYMMDD.json/csv`) are pruned after 14 days.
 
-## Running Tests
+## Running Tests (TODO)
 
 ```bash
 pytest
 ```
 
 ## TODOs
-- Schema will be constantly evolved based on the needs
-- Update provenance with the mappings of [risk-atlas-nexus by IBM](https://github.com/IBM/risk-atlas-nexus/tree/main/src/risk_atlas_nexus/data/knowledge_graph/mappings) where applicable.
-- Add ALTAI mappings based on the requirements for trustworthy AI and the structure of the questionnaire.
-- Create a user friendly front-end to explore the database. The front-end should be in accordance with the main template of the EnergyGuard platform.
+- Schema will be constantly evolved based on the needs...
+- Create a user friendly front-end to explore the database and add risks as a stakeholder. The front-end should be in accordance with the main template of the EnergyGuard platform.
 - Map to the acceptance environment of T5.2 as follows: Create a matchmaking service (maybe LLM based) that based on the type of AI application tested by the client displays the appropriate risks and alerts for their specific type of AI system.
-
-Tests validate schema constraints, search and filter behavior, importer idempotency, and export parity with the database count (using a temporary SQLite database for convenience).
+- Pytests
+- Database should be public. It can only be modified by EnergyGuard admins though.
 
 ## License
 

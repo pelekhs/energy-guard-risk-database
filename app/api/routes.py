@@ -22,6 +22,7 @@ def list_risks(
     ids: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     lifecycle_stage: Optional[str] = Query(default=None),
+    altai: Optional[str] = Query(default=None, description="Filter by ALTAI requirement id"),
     db: Session = Depends(get_db),
 ) -> List[RiskResponse]:
     limit = limit or settings.default_limit
@@ -35,6 +36,7 @@ def list_risks(
         ids=id_list,
         category=category,
         lifecycle_stage=lifecycle_stage,
+        altai=altai,
     )
 
 

@@ -41,6 +41,7 @@ def get_risks(
     ids: Optional[Sequence[str]] = None,
     category: Optional[str] = None,
     lifecycle_stage: Optional[str] = None,
+    altai: Optional[str] = None,
 ) -> List[RiskResponse]:
     stmt = select(Risk)
     if ids:
@@ -62,6 +63,13 @@ def get_risks(
             risk
             for risk in risks
             if risk.card.get("lifecycle_stage") == lifecycle_stage
+        ]
+    if altai:
+        altai_lower = altai.lower()
+        risks = [
+            risk
+            for risk in risks
+            if altai_lower in {item.lower() for item in risk.card.get("altai_requirements", [])}
         ]
     if limit:
         risks = risks[:limit]

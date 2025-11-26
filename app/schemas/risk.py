@@ -23,6 +23,7 @@ class RiskCard(BaseModel):
     related_risks: List[str] = Field(default_factory=list)
     categories: List[str] = Field(default_factory=list)
     energy_context: List[str] = Field(default_factory=list)
+    altai_requirements: List[str] = Field(default_factory=list)
     version: str
     stable_id: Optional[str] = None
     merge_hash: Optional[str] = None
@@ -34,6 +35,8 @@ class RiskCard(BaseModel):
         if not self.stable_id:
             self.stable_id = self.risk_name.strip()
         return self
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class RiskBase(BaseModel):

@@ -4,12 +4,15 @@ import csv
 import io
 import json
 import math
+import os
 import re
+import urllib.request
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,6 +24,12 @@ from app.services import risk_service
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data"
 ATLAS_TECHNIQUES_PATH = ROOT_DIR / "atlas_techniques.yaml"
+RISK_ATLAS_NEXUS_CACHE = DATA_DIR / "risk_atlas_nexus_mappings.json"
+RISK_ATLAS_NEXUS_SOURCES = {
+    "nexus": "https://raw.githubusercontent.com/IBM/risk-atlas-nexus/main/src/risk_atlas_nexus/data/knowledge_graph/mappings/mit-ai-risk-repository_ibm-risk-atlas_from_tsv_data.yaml",
+    "nist": "https://raw.githubusercontent.com/IBM/risk-atlas-nexus/main/src/risk_atlas_nexus/data/knowledge_graph/mappings/ibm2nistgenai_from_tsv_data.yaml",
+}
+REFRESH_RISK_ATLAS = os.getenv("REFRESH_RISK_ATLAS_NEXUS", "").lower() in {"1", "true", "yes"}
 
 REQUIRED_COLUMNS = {
     "risk_id",
@@ -185,6 +194,104 @@ def _load_mitre_atlas_ids() -> Set[str]:
         if match:
             ids.add(match.group(1).upper())
     return ids
+
+
+def _download_yaml(url: str) -> Optional[Dict[str, Any]]:
+    try:
+        with urllib.request.urlopen(url, timeout=20) as resp:
+            raw = resp.read().decode("utf-8")
+            return yaml.safe_load(raw) or {}
+    except Exception:
+        return None
+
+
+def _load_risk_atlas_nexus() -> Dict[str, Dict[str, List[str]]]:
+    if RISK_ATLAS_NEXUS_CACHE.exists() and not REFRESH_RISK_ATLAS:
+        try:
+            return json.loads(RISK_ATLAS_NEXUS_CACHE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    combined: Dict[str, Dict[str, Set[str]]] = {}
+
+    def _merge_entry(entry: Dict[str, Any], key: str) -> None:
+        atlas_id = entry.get("id")
+        if not atlas_id:
+            return
+        target = combined.setdefault(atlas_id, {"relatedMatch": set(), "nist": set(), "mit_ai": set(), "mitre": set()})
+        if "relatedMatch" in entry and entry["relatedMatch"]:
+            target["relatedMatch"].update(entry["relatedMatch"])
+
+    # Base nexus matches
+    base_data = _download_yaml(RISK_ATLAS_NEXUS_SOURCES["nexus"])
+    if base_data:
+        for entry in base_data.get("risks", []):
+            _merge_entry(entry, "relatedMatch")
+
+    # NIST crosswalk if available
+    nist_data = _download_yaml(RISK_ATLAS_NEXUS_SOURCES["nist"])
+    if nist_data:
+        for entry in nist_data.get("risks", []):
+            atlas_id = entry.get("id")
+            if not atlas_id:
+                continue
+            target = combined.setdefault(atlas_id, {"relatedMatch": set(), "nist": set(), "mit_ai": set(), "mitre": set()})
+            if "relatedMatch" in entry and entry["relatedMatch"]:
+                target["nist"].update(entry["relatedMatch"])
+
+    # Normalise to lists and cache
+    normalized: Dict[str, Dict[str, List[str]]] = {}
+    for atlas_id, buckets in combined.items():
+        normalized[atlas_id] = {
+            "relatedMatch": sorted(buckets.get("relatedMatch", [])),
+            "nist": sorted(buckets.get("nist", [])),
+            "mit_ai": sorted(buckets.get("mit_ai", [])),
+            "mitre": sorted(buckets.get("mitre", [])),
+        }
+    if normalized:
+        try:
+            RISK_ATLAS_NEXUS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            RISK_ATLAS_NEXUS_CACHE.write_text(json.dumps(normalized, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+    return normalized
+
+
+RISK_ATLAS_NEXUS = _load_risk_atlas_nexus()
+
+
+def _load_altai_requirements(path: Path) -> Set[str]:
+    if not path.exists():
+        return set()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return {item["id"] for item in data if item.get("id")}
+    except Exception:
+        return set()
+
+
+def _load_altai_mapping(path: Path, allowed: Set[str]) -> Dict[str, List[str]]:
+    if not path.exists():
+        return {}
+    mapping: Dict[str, List[str]] = {}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for line in lines[1:]:
+            parts = line.split(",")
+            if len(parts) < 2:
+                continue
+            risk_id = parts[0].strip()
+            altai_ids = [token.strip() for token in parts[1].split(";") if token.strip()]
+            altai_ids = [aid for aid in altai_ids if aid in allowed]
+            if risk_id and altai_ids:
+                mapping[risk_id] = sorted(set(altai_ids))
+    except Exception:
+        return {}
+    return mapping
+
+
+ALTAI_REQUIREMENTS = _load_altai_requirements(DATA_DIR / "altai_requirements.json")
+ALTAI_MAPPING = _load_altai_mapping(DATA_DIR / "altai_risk_mapping.csv", ALTAI_REQUIREMENTS)
 
 
 MIT_AIRISK_IDS = _load_id_list(DATA_DIR / "mit_airisk_ids.txt")
@@ -357,6 +464,23 @@ class CsvIngestor:
         card["lifecycle_stage"] = self._derive_lifecycle_stage(card)
         card["risk_summary"] = self._derive_summary(description)
 
+        # Optional ALTAI column in source data
+        altai_raw = row.get("altai_requirements", "")
+        if altai_raw:
+            altai_ids = self._sort_list([token.strip() for token in altai_raw.split(";") if token.strip()])
+            if altai_ids:
+                card["altai_requirements"] = altai_ids
+                card.setdefault("provenance", []).append(
+                    {
+                        "action": "altai-sourced",
+                        "altai_requirements": altai_ids,
+                        "note": "altai_requirements column",
+                    }
+                )
+
+        self._augment_provenance_from_mappings(card)
+        self._apply_altai_mapping(risk_id, card)
+
         return NormalizedRisk(row=row_num, risk_id=risk_id, status=status, version=version, card=card), issues
 
     def _ensure_relationships(self, entries: List[NormalizedRisk], issues: List[LintIssue]) -> None:
@@ -418,6 +542,61 @@ class CsvIngestor:
                 result.append(normalized)
                 seen.add(key)
         return result
+
+    def _augment_provenance_from_mappings(self, card: Dict[str, Any]) -> None:
+        if not RISK_ATLAS_NEXUS:
+            return
+        atlas_matches = self._guess_atlas_matches(card.get("risk_name", ""))
+        if not atlas_matches:
+            return
+        for atlas_id in atlas_matches:
+            mapping = RISK_ATLAS_NEXUS.get(atlas_id, {})
+            entry: Dict[str, Any] = {
+                "action": "mapped",
+                "sources": [f"IBM_RISK_ATLAS:{atlas_id}"],
+            }
+            if mapping.get("relatedMatch"):
+                entry["nexus_matches"] = mapping["relatedMatch"]
+            if mapping.get("nist"):
+                entry["nist_controls"] = mapping["nist"]
+            if mapping.get("mitre"):
+                entry["mitre_atlas"] = mapping["mitre"]
+            if mapping.get("mit_ai"):
+                entry["mit_ai"] = mapping["mit_ai"]
+            card.setdefault("provenance", []).append(entry)
+
+    def _apply_altai_mapping(self, risk_id: str, card: Dict[str, Any]) -> None:
+        altai_ids = ALTAI_MAPPING.get(risk_id)
+        if not altai_ids:
+            return
+        merged = self._sort_list(set(card.get("altai_requirements", [])) | set(altai_ids))
+        card["altai_requirements"] = merged
+        provenance_entry = {
+            "action": "altai-mapped",
+            "altai_requirements": merged,
+            "note": "altai_risk_mapping.csv",
+        }
+        card.setdefault("provenance", []).append(provenance_entry)
+
+    def _guess_atlas_matches(self, risk_name: str) -> List[str]:
+        slug = self._slugify(risk_name)
+        matches: List[str] = []
+        for atlas_id in RISK_ATLAS_NEXUS.keys():
+            atlas_slug = atlas_id.replace("atlas-", "")
+            if slug == atlas_slug or slug.endswith(atlas_slug) or atlas_slug.endswith(slug):
+                matches.append(atlas_id)
+                continue
+            atlas_tokens = set(atlas_slug.split("-"))
+            slug_tokens = set(slug.split("-"))
+            shared = atlas_tokens & slug_tokens
+            if shared and len(shared) >= max(1, min(len(atlas_tokens), len(slug_tokens)) - 1):
+                matches.append(atlas_id)
+        return sorted(set(matches))
+
+    def _slugify(self, value: str) -> str:
+        value = value.lower()
+        value = re.sub(r"[^a-z0-9]+", "-", value)
+        return value.strip("-")
 
     def _normalize_provenance_entry(self, entry: Any) -> Dict[str, Any]:
         if isinstance(entry, dict):
