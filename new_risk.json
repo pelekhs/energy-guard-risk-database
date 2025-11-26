@@ -1,28 +1,70 @@
 {
-  "risk_id": "EG-R-9001",
+  "risk_id": "EG-R-9500",
   "status": "draft",
   "version": "1.0",
   "card": {
-    "risk_name": "Sensor Spoofing During Load Forecasts",
-    "description": "Attackers replay stale SCADA measurements so forecasting models issue bad dispatch recommendations.",
-    "ai_model_type": ["forecasting"],
-    "probability_level": 3,
-    "impact_level": 4,
-    "operational_priority": 4,
-    "impact_dimensions": ["reliability", "safety"],
-    "trigger_conditions": "Unvalidated sensor telemetry feeds with no secure time sync.",
-    "technological_dependencies": ["SCADA historians", "edge inference gateways"],
-    "known_mitigations": ["Authenticated telemetry", "drift monitoring"],
-    "regulatory_requirements": ["NERC-CIP-005"],
-    "source_reference": ["MITRE_ATLAS:AML.T0043"],
-    "provenance": [
-      {"action": "drafted", "editor": "ICCS", "date": "2024-11-24"}
+    "risk_name": "Insider Data Poisoning on Solar Forecasting",
+    "description": "A contractor with privileged access injects biased irradiance readings during nightly retraining, leading to systematically under-forecasted solar generation and dispatch imbalances.",
+    "ai_model_type": [
+      "forecasting",
+      "deep_learning"
     ],
-    "categories": ["technical.attack"],
-    "energy_context": ["transmission_control"],
-    "version": "1.0",
-    "lifecycle_stage": "operations",
-    "risk_summary": "Spoofed SCADA telemetry drives bad load forecasts and dispatch.",
-    "stable_id": "EG-R-9001"
+    "probability_level": 3,
+    "impact_level": 5,
+    "impact_dimensions": [
+      "reliability",
+      "financial",
+      "safety"
+    ],
+    "trigger_conditions": "Unauthorized modification of the historical irradiance dataset before the nightly retraining window.",
+    "technological_dependencies": [
+      "Data lakes",
+      "ETL pipelines",
+      "MLOps scheduler"
+    ],
+    "known_mitigations": [
+      "Dual-control approvals for data imports",
+      "Automated drift detection on root variables",
+      "Immutable provenance for training data"
+    ],
+    "regulatory_requirements": [
+      "NERC-CIP-013",
+      "EU-AI-Act-TitleIV"
+    ],
+    "operational_priority": 4,
+    "source_reference": [
+      "MITRE_ATLAS:AML.T0020",
+      "AIID:INC-1023"
+    ],
+    "provenance": [
+      {
+        "action": "drafted",
+        "editor": "ICCS",
+        "date": "2025-01-15"
+      },
+      {
+        "action": "altai-mapped",
+        "altai_requirements": [
+          "robustness",
+          "accountability"
+        ],
+        "note": "altai_risk_mapping.csv"
+      }
+    ],
+    "related_risks": [
+      "EG-R-0001",
+      "EG-R-0014"
+    ],
+    "categories": [
+      "technical.attack"
+    ],
+    "energy_context": [
+      "generation_renewables"
+    ],
+    "altai_requirements": [
+      "robustness",
+      "accountability"
+    ],
+    "version": "1.0"
   }
 }

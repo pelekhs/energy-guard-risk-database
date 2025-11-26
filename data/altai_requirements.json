@@ -1,0 +1,9 @@
+[
+  { "id": "agency", "label": "Human agency and oversight" },
+  { "id": "robustness", "label": "Technical robustness and safety" },
+  { "id": "privacy", "label": "Privacy and data governance" },
+  { "id": "transparency", "label": "Transparency" },
+  { "id": "fairness", "label": "Diversity, non-discrimination and fairness" },
+  { "id": "societal", "label": "Societal and environmental well-being" },
+  { "id": "accountability", "label": "Accountability" }
+]

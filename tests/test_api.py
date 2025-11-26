@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import json
 from typer.testing import CliRunner
 
 from app.cli import cli as cli_app
@@ -105,3 +106,21 @@ def test_export_parity(tmp_path):
         export_payload = export_json_bytes(session)
     assert db_count >= 20
     assert len(export_payload) > 0
+
+
+def test_ingest_seed_csv():
+    runner = CliRunner()
+    result = runner.invoke(cli_app, ["ingest", "canonical-seed", "--file", str(Path("seed_canonical_risks.csv"))])
+    assert result.exit_code == 0
+    with get_session() as session:
+        count = session.query(Risk).count()
+    assert count >= 20
+
+
+def test_post_new_risk_json(client):
+    new_risk_path = Path("new_risk.json")
+    payload = json.loads(new_risk_path.read_text(encoding="utf-8"))
+    response = client.post("/risks", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["risk_id"] == payload["risk_id"]
