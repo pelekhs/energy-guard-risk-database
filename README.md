@@ -27,6 +27,8 @@ Each `risk.card` JSONB object contains these top-level fields:
 - **Automated exports** that persist daily JSON/CSV snapshots with 14-day retention.
 - **TEF/ALTAI hooks** including stable IDs, brief listings, and batch fetch support.
 
+License: [MIT](LICENSE)
+
 ## Project Structure
 
 ```
